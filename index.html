@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة القفز بالمستويات</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        h1 {
+            color: #ffeb3b;
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4cff00;
+        }
+
+        .game-area {
+            position: relative;
+            height: 400px;
+            background: #222;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            background: #4CAF50;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .screens {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        #startScreen {
+            display: flex;
+        }
+
+        #gameOver,
+        #levelComplete {
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-running"></i> لعبة القفز بالمستويات</h1>
+            <p>تجنب العقبات وأكمل المستويات!</p>
+        </header>
+
+        <div class="game-info">
+            <div class="info-item">
+                <span>المستوى</span>
+                <div class="info-value" id="level">1</div>
+            </div>
+            <div class="info-item">
+                <span>النقاط</span>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <span>الوقت</span>
+                <div class="info-value" id="time">30</div>
+            </div>
+            <div class="info-item">
+                <span>العقبات</span>
+                <div class="info-value" id="obstacles">0</div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <div class="screens" id="startScreen">
+                <h2>لعبة القفز بالمستويات</h2>
+                <div style="margin: 20px; text-align: center;">
+                    <p><i class="fas fa-arrow-up"></i> السهم للأعلى أو المسافة للقفز</p>
+                    <p><i class="fas fa-arrow-down"></i> السهم للأسفل للانحناء</p>
+                    <p>تجنب العقبات وأكمل كل مستوى في الوقت المحدد</p>
+                    <p>كل مستوى له خلفية وتحديات مختلفة</p>
+                </div>
+                <button id="startBtn"><i class="fas fa-play"></i> بدء اللعبة</button>
+            </div>
+
+            <div class="screens" id="gameOver">
+                <h2>انتهت اللعبة!</h2>
+                <p style="margin: 20px;">النقاط: <span id="finalScore">0</span></p>
+                <p>المستوى: <span id="finalLevel">1</span></p>
+                <button id="restartBtn"><i class="fas fa-redo"></i> لعب مرة أخرى</button>
+            </div>
+
+            <div class="screens" id="levelComplete">
+                <h2>مستوى مكتمل!</h2>
+                <p style="margin: 20px;">المستوى <span id="completedLevel">1</span> مكتمل!</p>
+                <p>يبدأ المستوى التالي خلال: <span id="countdown">3</span></p>
+                <button id="nextBtn"><i class="fas fa-forward"></i> التالي الآن</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="jumpBtn"><i class="fas fa-arrow-up"></i> قفز</button>
+            <button id="pauseBtn"><i class="fas fa-pause"></i> إيقاف</button>
+            <button id="soundBtn"><i class="fas fa-volume-up"></i> صوت</button>
+        </div>
+
+        <footer>
+
+        </footer>
+    </div>
+
+    <script>
+        // عناصر DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelElement = document.getElementById('level');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const obstaclesElement = document.getElementById('obstacles');
+        const startScreen = document.getElementById('startScreen');
+        const gameOver = document.getElementById('gameOver');
+        const levelComplete = document.getElementById('levelComplete');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalLevelElement = document.getElementById('finalLevel');
+        const completedLevelElement = document.getElementById('completedLevel');
+        const countdownElement = document.getElementById('countdown');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const jumpBtn = document.getElementById('jumpBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const soundBtn = document.getElementById('soundBtn');
+
+        // تعريف المستويات
+        const levels = [
+            {
+                name: "الغابة",
+                time: 30,
+                speed: 5,
+                bgColor1: '#87CEEB',
+                bgColor2: '#98FB98',
+                groundColor: '#8B4513',
+                playerColor: '#4CAF50',
+                obstacles: [
+                    { width: 30, height: 50, color: '#2E7D32', score: 10 },
+                    { width: 50, height: 40, color: '#795548', score: 15 },
+                    { width: 20, height: 70, color: '#388E3C', score: 20 }
+                ]
+            },
+            {
+                name: "الصحراء",
+                time: 25,
+                speed: 6,
+                bgColor1: '#FFD89B',
+                bgColor2: '#19547B',
+                groundColor: '#D2691E',
+                playerColor: '#FF9800',
+                obstacles: [
+                    { width: 25, height: 60, color: '#2E7D32', score: 15 },
+                    { width: 40, height: 35, color: '#795548', score: 20 },
+                    { width: 60, height: 30, color: '#8D6E63', score: 25 }
+                ]
+            },
+            {
+                name: "الثلج",
+                time: 20,
+                speed: 7,
+                bgColor1: '#E0F7FA',
+                bgColor2: '#80DEEA',
+                groundColor: '#FFFFFF',
+                playerColor: '#2196F3',
+                obstacles: [
+                    { width: 40, height: 45, color: '#FFFFFF', score: 20 },
+                    { width: 30, height: 55, color: '#B3E5FC', score: 25 },
+                    { width: 50, height: 40, color: '#81D4FA', score: 30 }
+                ]
+            }
+        ];
+
+        // متغيرات اللعبة
+        let game = {
+            running: false,
+            paused: false,
+            currentLevel: 0,
+            score: 0,
+            levelTime: 0,
+            obstaclesPassed: 0,
+            soundOn: true,
+            keys: {}
+        };
+
+        // اللاعب
+        let player = {
+            x: 100,
+            y: 300,
+            width: 40,
+            height: 60,
+            color: '#4CAF50',
+            vy: 0,
+            isJumping: false,
+            isDucking: false,
+            gravity: 0.5,
+            jumpPower: 12
+        };
+
+        // العقبات
+        let obstacles = [];
+        let clouds = [];
+        let groundHeight = 50;
+        let lastTime = 0;
+        let levelCompleteTimer = null;
+
+        // تحميل أفضل نتيجة
+        function loadHighScore() {
+            return localStorage.getItem('jumpHighScore') || 0;
+        }
+
+        // حفظ أفضل نتيجة
+        function saveHighScore() {
+            if (game.score > loadHighScore()) {
+                localStorage.setItem('jumpHighScore', game.score);
+            }
+        }
+
+        // تحديث الواجهة
+        function updateUI() {
+            levelElement.textContent = game.currentLevel + 1;
+            scoreElement.textContent = game.score;
+            timeElement.textContent = Math.max(0, Math.floor(game.levelTime));
+            obstaclesElement.textContent = game.obstaclesPassed;
+        }
+
+        // بدء المستوى
+        function startLevel(levelIndex) {
+            const level = levels[levelIndex];
+            game.currentLevel = levelIndex;
+            game.levelTime = level.time;
+            game.obstaclesPassed = 0;
+
+            // إعادة تعيين اللاعب
+            player.x = 100;
+            player.y = 300;
+            player.vy = 0;
+            player.isJumping = false;
+            player.isDucking = false;
+            player.color = level.playerColor;
+            player.width = 40;
+            player.height = 60;
+
+            // إعادة تعيين العقبات
+            obstacles = [];
+            clouds = [];
+
+            // إضافة بعض الغيوم
+            for (let i = 0; i < 5; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * 150,
+                    width: 60 + Math.random() * 40,
+                    speed: 1 + Math.random()
+                });
+            }
+
+            // إضافة عقبة أولى
+            addObstacle();
+
+            updateUI();
+        }
+
+        // إضافة عقبة
+        function addObstacle() {
+            const level = levels[game.currentLevel];
+            const type = level.obstacles[Math.floor(Math.random() * level.obstacles.length)];
+
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - groundHeight - type.height,
+                width: type.width,
+                height: type.height,
+                color: type.color,
+                score: type.score,
+                passed: false
+            });
+        }
+
+        // القفز
+        function jump() {
+            if (!player.isJumping && game.running) {
+                player.vy = -player.jumpPower;
+                player.isJumping = true;
+                player.isDucking = false;
+            }
+        }
+
+        // الانحناء
+        function duck() {
+            if (!player.isJumping && game.running) {
+                player.isDucking = true;
+                player.height = 30;
+                setTimeout(() => {
+                    if (game.running) {
+                        player.isDucking = false;
+                        player.height = 60;
+                    }
+                }, 1000);
+            }
+        }
+
+        // التحقق من التصادم
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y;
+        }
+
+        // رسم الخلفية
+        function drawBackground() {
+            const level = levels[game.currentLevel];
+
+            // السماء
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, level.bgColor1);
+            gradient.addColorStop(1, level.bgColor2);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // الشمس
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(canvas.width - 80, 80, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // الغيوم
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            clouds.forEach(cloud => {
+                ctx.beginPath();
+                ctx.ellipse(cloud.x, cloud.y, cloud.width / 2, 20, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // الأرض
+            ctx.fillStyle = level.groundColor;
+            ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+
+            // العشب
+            if (game.currentLevel === 0) {
+                ctx.fillStyle = '#2E8B57';
+                ctx.fillRect(0, canvas.height - groundHeight, canvas.width, 10);
+            }
+        }
+
+        // رسم اللاعب
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // الوجه
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x + player.width - 15, player.y + 10, 8, 8);
+            ctx.fillRect(player.x + player.width - 15, player.y + 30, 12, 5);
+        }
+
+        // رسم العقبات
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        // تحديث اللعبة
+        function updateGame(deltaTime) {
+            if (!game.running || game.paused) return;
+
+            const level = levels[game.currentLevel];
+
+            // تحديث الوقت
+            game.levelTime -= deltaTime / 1000;
+
+            // التحقق من انتهاء الوقت
+            if (game.levelTime <= 0) {
+                game.levelTime = 0;
+                completeLevel();
+                return;
+            }
+
+            // تحديث اللاعب (الجاذبية)
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            // منع اللاعب من السقوط تحت الأرض
+            const groundY = canvas.height - groundHeight - player.height;
+            if (player.y > groundY) {
+                player.y = groundY;
+                player.vy = 0;
+                player.isJumping = false;
+            }
+
+            // تحديث الغيوم
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed;
+                if (cloud.x + cloud.width < 0) {
+                    cloud.x = canvas.width;
+                    cloud.y = Math.random() * 150;
+                }
+            });
+
+            // تحديث العقبات
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= level.speed;
+
+                // التحقق من تجاوز العقبة
+                if (!obstacles[i].passed && obstacles[i].x + obstacles[i].width < player.x) {
+                    obstacles[i].passed = true;
+                    game.score += obstacles[i].score;
+                    game.obstaclesPassed++;
+                    updateUI();
+                }
+
+                // إزالة العقبات التي خرجت من الشاشة
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+
+                // التحقق من التصادم
+                if (checkCollision(player, obstacles[i])) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // إضافة عقبات جديدة
+            if (obstacles.length === 0 ||
+                obstacles[obstacles.length - 1].x < canvas.width - 300) {
+                addObstacle();
+            }
+
+            updateUI();
+        }
+
+        // رسم اللعبة
+        function drawGame() {
+            // مسح الشاشة
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // رسم العناصر
+            drawBackground();
+            drawObstacles();
+            drawPlayer();
+
+            // معلومات اللعبة
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(10, 10, 200, 80);
+
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Cairo';
+            ctx.fillText(`المستوى: ${game.currentLevel + 1}`, 20, 35);
+            ctx.fillText(`النقاط: ${game.score}`, 20, 60);
+            ctx.fillText(`الوقت: ${Math.floor(game.levelTime)}`, 20, 85);
+        }
+
+        // حلقة اللعبة
+        function gameLoop(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            if (game.running) {
+                updateGame(deltaTime);
+                drawGame();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // بدء اللعبة
+        function startGame() {
+            game.running = true;
+            game.paused = false;
+            game.score = 0;
+            startScreen.style.display = 'none';
+            gameOver.style.display = 'none';
+            levelComplete.style.display = 'none';
+            startLevel(0);
+        }
+
+        // إنهاء اللعبة
+        function endGame() {
+            game.running = false;
+            finalScoreElement.textContent = game.score;
+            finalLevelElement.textContent = game.currentLevel + 1;
+            gameOver.style.display = 'flex';
+            saveHighScore();
+        }
+
+        // إكمال المستوى
+        function completeLevel() {
+            game.running = false;
+            completedLevelElement.textContent = game.currentLevel + 1;
+            levelComplete.style.display = 'flex';
+
+            // العد التنازلي
+            let countdown = 3;
+            countdownElement.textContent = countdown;
+
+            levelCompleteTimer = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+
+                if (countdown <= 0) {
+                    nextLevel();
+                }
+            }, 1000);
+        }
+
+        // المستوى التالي
+        function nextLevel() {
+            clearInterval(levelCompleteTimer);
+
+            if (game.currentLevel + 1 < levels.length) {
+                game.currentLevel++;
+                startLevel(game.currentLevel);
+                game.running = true;
+                levelComplete.style.display = 'none';
+            } else {
+                // فوز في اللعبة
+                finalScoreElement.textContent = game.score;
+                finalLevelElement.textContent = levels.length;
+                gameOver.querySelector('h2').textContent = 'تهانينا! فزت باللعبة!';
+                gameOver.style.display = 'flex';
+                saveHighScore();
+            }
+        }
+
+        // إعداد الأحداث
+        function setupEvents() {
+            // أزرار التحكم
+            startBtn.addEventListener('click', startGame);
+            restartBtn.addEventListener('click', startGame);
+            nextBtn.addEventListener('click', nextLevel);
+            jumpBtn.addEventListener('click', jump);
+
+            pauseBtn.addEventListener('click', () => {
+                if (game.running) {
+                    game.paused = !game.paused;
+                    pauseBtn.innerHTML = game.paused ?
+                        '<i class="fas fa-play"></i> استئناف' :
+                        '<i class="fas fa-pause"></i> إيقاف';
+                }
+            });
+
+            soundBtn.addEventListener('click', () => {
+                game.soundOn = !game.soundOn;
+                soundBtn.innerHTML = game.soundOn ?
+                    '<i class="fas fa-volume-up"></i> صوت' :
+                    '<i class="fas fa-volume-mute"></i> صوت';
+            });
+
+            // مفاتيح لوحة المفاتيح
+            document.addEventListener('keydown', (e) => {
+                game.keys[e.key] = true;
+
+                if (e.key === ' ' || e.key === 'ArrowUp') {
+                    jump();
+                    e.preventDefault();
+                }
+
+                if (e.key === 'ArrowDown') {
+                    duck();
+                    e.preventDefault();
+                }
+
+                if (e.key === 'p' || e.key === 'P') {
+                    if (game.running) {
+                        game.paused = !game.paused;
+                        pauseBtn.innerHTML = game.paused ?
+                            '<i class="fas fa-play"></i> استئناف' :
+                            '<i class="fas fa-pause"></i> إيقاف';
+                    }
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                game.keys[e.key] = false;
+            });
+        }
+
+        // بدء اللعبة عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            setupEvents();
+            gameLoop();
+
+            // ضبط حجم canvas
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            });
+        });
+    </script>
+</body>
+
+</html>
